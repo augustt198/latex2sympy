@@ -173,7 +173,7 @@ def stringify_atom(atom):
     elif atom.SYMBOL():
         s = atom.SYMBOL().getText()[1:]
         if s == "infty":
-            return "oo"
+            return " oo "
         else:
             return " %s" % s
     elif atom.NUMBER():
