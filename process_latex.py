@@ -175,7 +175,7 @@ def stringify_atom(atom):
         if s == "infty":
             return "oo"
         else:
-            return s
+            return " %s" % s
     elif atom.NUMBER():
         return atom.NUMBER().getText()
 
@@ -280,6 +280,7 @@ def handle_sum_or_prod(func, name):
     return fmt % (name, val, iter_var, start, end)
 
 def test_sympy():
+    print process_sympy("5 \\pi")
     print process_sympy("e**(45 + 2)")
     print process_sympy("e + 5")
     print process_sympy("5 + e")
