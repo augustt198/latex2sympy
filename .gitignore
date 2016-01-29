@@ -1,2 +1,8 @@
 gen/*
 !gen/__init__.py
+
+*.pyc
+
+# vim stuff
+*.swp
+*.swo
