@@ -182,13 +182,8 @@ def stringify_atom(atom):
         return atom.DIFFERENTIAL().getText()
 
 def stringify_frac(frac):
-    if (frac.letter1 and frac.letter1.text == 'd'
-        and frac.letter2 and frac.letter2.text == 'd'):
-        wrt = "x" # with respect to x by default
-        if frac.wrt_letter:
-            wrt = frac.wrt_letter.text
-        elif frac.wrt_sym:
-            wrt = frac.wrt_sym.text
+    if (frac.letter1 and frac.letter1.text == 'd' and frac.DIFFERENTIAL()):
+        wrt = frac.DIFFERENTIAL().getText()[1:]
         if frac.expr(0):
             fmt = "diff(%s, %s)"
             return fmt % (stringify_expr(frac.expr(0)), wrt)
@@ -201,12 +196,8 @@ def stringify_frac(frac):
     if frac.upper:
         num += stringify_expr(frac.upper)
     denom = ""
-    if frac.letter2:
-        denom += frac.letter2.text
-    if frac.wrt_letter:
-        denom += frac.wrt_letter.text
-    if frac.wrt_sym:
-        denom += frac.wrt_sym.text
+    if frac.DIFFERENTIAL():
+        denom += frac.DIFFERENTIAL().getText()
     if frac.lower:
         denom += stringify_expr(frac.lower)
 

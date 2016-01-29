@@ -122,7 +122,7 @@ frac:
     CMD_FRAC L_BRACE
     (letter1=LETTER | (letter1=LETTER? upper=expr))
     R_BRACE L_BRACE
-    ((letter2=LETTER (wrt_letter=LETTER | wrt_sym=SYMBOL)) | lower=expr)
+    (DIFFERENTIAL | lower=expr)
     R_BRACE;
 
 func_normal:
