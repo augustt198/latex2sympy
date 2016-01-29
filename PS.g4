@@ -52,6 +52,8 @@ CMD_FRAC:  '\\frac';
 UNDERSCORE: '_';
 CARET: '^';
 
+DIFFERENTIAL: 'd' ([a-zA-Z] | '\\' [a-zA-Z]+);
+
 LETTER: [a-zA-Z];
 fragment DIGIT: [0-9];
 NUMBER:
@@ -114,7 +116,7 @@ group:
 
 abs_group: BAR expr BAR;
 
-atom: (LETTER | SYMBOL) subexpr? | NUMBER;
+atom: (LETTER | SYMBOL) subexpr? | NUMBER | DIFFERENTIAL;
 
 frac:
     CMD_FRAC L_BRACE
@@ -137,7 +139,7 @@ func:
 
     | FUNC_INT
     (subexpr supexpr | supexpr subexpr)?
-    mp
+    (expr DIFFERENTIAL | mp)
 
     | FUNC_SQRT L_BRACE expr R_BRACE
 

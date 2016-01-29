@@ -178,6 +178,8 @@ def stringify_atom(atom):
             return s
     elif atom.NUMBER():
         return atom.NUMBER().getText()
+    elif atom.DIFFERENTIAL():
+        return atom.DIFFERENTIAL().getText()
 
 def stringify_frac(frac):
     if (frac.letter1 and frac.letter1.text == 'd'
@@ -251,15 +253,21 @@ def stringify_func_arg(arg):
         return "".join(arr)
 
 def handle_integral(func):
-    integrand = stringify_mp(func.mp())
-    # TODO improve
-    m = re.search(r'(d[a-z])', integrand)
-    if m:
-        integrand = integrand.replace(m.group(0), '1')
-        int_var = m.group(0)[1]
+    if func.expr():
+        integrand = stringify_expr(func.expr())
     else:
-        # Assume dx by default
-        int_var = "x"
+        integrand = stringify_mp(func.mp())
+
+    if func.DIFFERENTIAL():
+        int_var = func.DIFFERENTIAL().getText()[1:]
+    else:
+        m = re.search(r'(d[a-z])', integrand)
+        if m:
+            integrand = integrand.replace(m.group(0), '1')
+            int_var = m.group(0)[1]
+        else:
+            # Assume dx by default
+            int_var = "x"
 
     if func.subexpr():
         lower = stringify_expr(func.subexpr().expr())
