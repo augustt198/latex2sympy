@@ -93,7 +93,7 @@ def stringify_add(add):
 
 def stringify_mult(mult):
     arr = map(stringify_mp, mult.mp())
-    return "".join(arr)
+    return "*".join(arr)
 
 def stringify_mp(mp):
     if mp.MUL() or mp.CMD_TIMES() or mp.CMD_CDOT():
@@ -125,7 +125,7 @@ def stringify_postfix_list(arr, i=0):
             return res # nothing to multiply by
         else:
             # multiply by next
-            return res + stringify_postfix_list(arr, i + 1)
+            return res + "*" + stringify_postfix_list(arr, i + 1)
     else: # must be derivative
         wrt = res[0]
         if i == len(arr) - 1:
@@ -241,7 +241,7 @@ def stringify_func_arg(arg):
         return stringify_comp(arg.comp())
     elif arg.atom():
         arr = map(stringify_atom, arg.atom())
-        return "".join(arr)
+        return "*".join(arr)
 
 def handle_integral(func):
     if func.expr():
