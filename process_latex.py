@@ -73,7 +73,7 @@ def stringify_relation(rel):
     elif rel.GTE():
         fmt = "%s >= %s"
     elif rel.EQUAL():
-        fmt = "%s = %s"
+        fmt = "solve(%s -(%s))"
     return fmt % (lh, rh)
 
 def stringify_expr(expr):
