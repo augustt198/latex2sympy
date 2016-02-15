@@ -115,6 +115,13 @@ def stringify_unary(unary):
     elif unary.postfix():
         return stringify_postfix_list(unary.postfix())
 
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
 def stringify_postfix_list(arr, i=0):
     if i >= len(arr):
         raise Exception("Index out of bounds")
@@ -124,6 +131,11 @@ def stringify_postfix_list(arr, i=0):
         if i == len(arr) - 1:
             return res # nothing to multiply by
         else:
+            if i > 0:
+                left  = arr[i - 1].getText()
+                right = arr[i + 1].getText()
+                if is_number(left) and is_number(right) and res == "x":
+                    return stringify_postfix_list(arr, i + 1)
             # multiply by next
             return res + "*" + stringify_postfix_list(arr, i + 1)
     else: # must be derivative
