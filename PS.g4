@@ -139,7 +139,7 @@ func:
 
     | FUNC_INT
     (subexpr supexpr | supexpr subexpr)?
-    (expr DIFFERENTIAL | mp)
+    (additive? DIFFERENTIAL | frac)
 
     | FUNC_SQRT L_BRACE expr R_BRACE
 
