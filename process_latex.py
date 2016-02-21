@@ -247,6 +247,8 @@ def stringify_func(func):
         return handle_sum_or_prod(func, "summation")
     elif func.FUNC_PROD():
         return handle_sum_or_prod(func, "product")
+    elif func.FUNC_LIM():
+        return handle_limit(func)
 
 def stringify_func_arg(arg):
     if arg.comp():
@@ -291,6 +293,24 @@ def handle_sum_or_prod(func, name):
 
     fmt = "%s(%s, (%s, %s, %s))"
     return fmt % (name, val, iter_var, start, end)
+
+def handle_limit(func):
+    sub = func.limit_sub()
+    if sub.LETTER():
+        var = sub.LETTER().getText()
+    elif sub.SYMBOL():
+        var = sub.SYMBOL().getText()[1:]
+    else:
+        var = "x"
+    if sub.SUB():
+        direction = "-"
+    else:
+        direction = "+"
+    approaching = stringify_expr(sub.expr())
+    content     = stringify_mp(func.mp())
+    
+    fmt = 'limit(%s, %s, %s, dir="%s")'
+    return fmt % (content, var, approaching, direction)
 
 def test_sympy():
     print process_sympy("e**(45 + 2)")

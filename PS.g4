@@ -22,6 +22,8 @@ R_BRACKET: ']';
 
 BAR: '|';
 
+FUNC_LIM:  '\\lim';
+LIM_APPROACH_SYM: '\\to' | '\\rightarrow' | '\\Rightarrow';
 FUNC_INT:  '\\int';
 FUNC_SUM:  '\\sum';
 FUNC_PROD: '\\prod';
@@ -145,8 +147,15 @@ func:
 
     | (FUNC_SUM | FUNC_PROD)
     (subeq supexpr | supexpr subeq)
-    mp;
+    mp
+    | FUNC_LIM limit_sub mp;
 
+limit_sub:
+    UNDERSCORE L_BRACE
+    (LETTER | SYMBOL)
+    LIM_APPROACH_SYM
+    expr (CARET L_BRACE (ADD | SUB) R_BRACE)?
+    R_BRACE;
 
 func_arg: atom+ | comp;
 
