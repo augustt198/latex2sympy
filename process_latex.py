@@ -267,6 +267,8 @@ def handle_integral(func):
 
     if func.DIFFERENTIAL():
         int_var = func.DIFFERENTIAL().getText()[1:]
+        if int_var[0] == "\\":
+            int_var = int_var[1:]
     else:
         m = re.search(r'(d[a-z])', integrand)
         if m:
