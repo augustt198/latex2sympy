@@ -59,8 +59,8 @@ DIFFERENTIAL: 'd' ([a-zA-Z] | '\\' [a-zA-Z]+);
 LETTER: [a-zA-Z];
 fragment DIGIT: [0-9];
 NUMBER:
-    DIGIT+
-    | DIGIT* '.' DIGIT+;
+    DIGIT+ (',' DIGIT DIGIT DIGIT)*
+    | DIGIT* (',' DIGIT DIGIT DIGIT)* '.' DIGIT+;
 
 EQUAL: '=';
 LT: '<';
@@ -98,7 +98,21 @@ unary:
     (ADD | SUB) unary
     | postfix+;
 
-postfix: exp BANG?;
+postfix: exp postfix_op*;
+postfix_op: BANG | eval_at;
+
+eval_at:
+    BAR (eval_at_sup | eval_at_sub | eval_at_sup eval_at_sub);
+
+eval_at_sub:
+    UNDERSCORE L_BRACE
+    (expr | equality)
+    R_BRACE;
+
+eval_at_sup:
+    CARET L_BRACE
+    (expr | equality)
+    R_BRACE;
 
 exp:
     exp EXP exp

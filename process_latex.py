@@ -1,6 +1,4 @@
-import time
-import re
-import sys
+import sympy
 import antlr4
 from antlr4.error.ErrorListener import ErrorListener
 
@@ -24,13 +22,11 @@ def process_sympy(sympy):
     parser.removeErrorListeners()
     parser.addErrorListener(matherror)
 
-    t0 = time.time()
 
     relation = parser.math().relation()
-    sympy = stringify_relation(relation)
+    expr = convert_relation(relation)
 
-    t1 = time.time()
-    return sympy
+    return expr
 
 class MathErrorListener(ErrorListener):
     def __init__(self, src):
@@ -58,62 +54,61 @@ class MathErrorListener(ErrorListener):
             err = fmt % ("I don't understand this", self.src, marker)
         raise Exception(err)
 
-def stringify_relation(rel):
+def convert_relation(rel):
     if rel.expr():
-        return stringify_expr(rel.expr())
+        return convert_expr(rel.expr())
 
-    lh = stringify_relation(rel.relation(0))
-    rh = stringify_relation(rel.relation(1))
+    lh = convert_relation(rel.relation(0))
+    rh = convert_relation(rel.relation(1))
     if rel.LT():
-        fmt = "%s < %s"
+        return sympy.StrictLessThan(lh, rh)
     elif rel.LTE():
-        fmt = "%s <= %s"
+        return sympy.LessThan(lh, rh)
     elif rel.GT():
-        fmt = "%s > %s"
+        return sympy.StrictGreaterThan(lh, rh) 
     elif rel.GTE():
-        fmt = "%s >= %s"
+        return sympy.GreaterThan(lh, rh)
     elif rel.EQUAL():
-        fmt = "solve(%s -(%s))"
-    return fmt % (lh, rh)
+        return sympy.Eq(lh, rh)
 
-def stringify_expr(expr):
-    return stringify_add(expr.additive())
+def convert_expr(expr):
+    return convert_add(expr.additive())
 
-def stringify_add(add):
+def convert_add(add):
     if add.ADD():
-       lh = stringify_add(add.additive(0))
-       rh = stringify_add(add.additive(1))
-       return "%s + %s" % (lh, rh)
+       lh = convert_add(add.additive(0))
+       rh = convert_add(add.additive(1))
+       return sympy.Add(lh, rh, evaluate=False)
     elif add.SUB():
-        lh = stringify_add(add.additive(0))
-        rh = stringify_add(add.additive(1))
-        return "%s - %s" % (lh, rh)
+        lh = convert_add(add.additive(0))
+        rh = convert_add(add.additive(1))
+        return sympy.Add(lh, -1 * rh, evaluate=False)
     else:
-        return stringify_mp(add.mp())
+        return convert_mp(add.mp())
 
-def stringify_mult(mult):
-    arr = map(stringify_mp, mult.mp())
-    return "*".join(arr)
+def convert_mult(mult):
+    arr = map(convert_mp, mult.mp())
+    return sympy.Mul(*arr)
 
-def stringify_mp(mp):
+def convert_mp(mp):
     if mp.MUL() or mp.CMD_TIMES() or mp.CMD_CDOT():
-        lh = stringify_mp(mp.mp(0))
-        rh = stringify_mp(mp.mp(1))
-        return "%s * %s" % (lh, rh)
+        lh = convert_mp(mp.mp(0))
+        rh = convert_mp(mp.mp(1))
+        return sympy.Mul(lh, rh, evaluate=False)
     elif mp.DIV() or mp.CMD_DIV():
-        lh = stringify_mp(mp.mp(0))
-        rh = stringify_mp(mp.mp(1))
-        return "%s / %s" % (lh, rh)
+        lh = convert_mp(mp.mp(0))
+        rh = convert_mp(mp.mp(1))
+        return sympy.Mul(lh, sympy.Pow(rh, -1, evaluate=False), evaluate=False)
     elif mp.unary():
-        return stringify_unary(mp.unary())
+        return convert_unary(mp.unary())
 
-def stringify_unary(unary):
+def convert_unary(unary):
     if unary.ADD():
-        return "+%s" % (stringify_unary(unary.unary()))
+        return convert_unary(unary.unary())
     elif unary.SUB():
-        return "-%s" % (stringify_unary(unary.unary()))
+        return sympy.Mul(-1, convert_unary(unary.unary()), evaluate=False)
     elif unary.postfix():
-        return stringify_postfix_list(unary.postfix())
+        return convert_postfix_list(unary.postfix())
 
 def is_number(s):
     try:
@@ -122,127 +117,174 @@ def is_number(s):
     except ValueError:
         return False
 
-def stringify_postfix_list(arr, i=0):
+def convert_postfix_list(arr, i=0):
     if i >= len(arr):
         raise Exception("Index out of bounds")
 
-    res = stringify_postfix(arr[i])
-    if isinstance(res, basestring):
+    res = convert_postfix(arr[i])
+    if isinstance(res, sympy.Expr):
         if i == len(arr) - 1:
             return res # nothing to multiply by
         else:
             if i > 0:
-                left  = arr[i - 1].getText()
-                right = arr[i + 1].getText()
-                if is_number(left) and is_number(right) and res == "x":
-                    return stringify_postfix_list(arr, i + 1)
+                left  = arr[i - 1]
+                right = arr[i + 1]
+                if isinstance(left, sympy.Number) and isinstance(right, sympy.Number) and str(res) == "x":
+                    return convert_postfix_list(arr, i + 1)
             # multiply by next
-            return res + "*" + stringify_postfix_list(arr, i + 1)
+            return sympy.Mul(res, convert_postfix_list(arr, i + 1), evaluate=False)
     else: # must be derivative
         wrt = res[0]
         if i == len(arr) - 1:
             raise Exception("Expected expression for derivative")
         else:
-            expr = stringify_postfix_list(arr, i + 1)
-            return "diff(%s, %s)" % (expr, wrt)
+            expr = convert_postfix_list(arr, i + 1)
+            return sympy.Derivative(expr, wrt)
 
-def stringify_postfix(postfix):
-    exp = stringify_exp(postfix.exp())
-    if postfix.BANG():
-        if isinstance(exp, list):
-            raise Exception("Cannot apply postfix to derivative")
-        exp = "factorial(%s)" % (exp)
+def do_subs(expr, at):
+    if at.expr():
+        at_expr = convert_expr(at.expr())
+        syms = at_expr.atoms(sympy.Symbol)
+        if len(syms) == 0:
+            return expr
+        elif len(syms) > 0:
+            sym = next(iter(syms))
+            return expr.subs(sym, at_expr)
+    elif at.equality():
+        lh = convert_expr(at.equality().expr(0))
+        rh = convert_expr(at.equality().expr(1))
+        return expr.subs(lh, rh)
+
+def convert_postfix(postfix):
+    exp = convert_exp(postfix.exp())
+    for op in postfix.postfix_op():
+        if op.BANG():
+            if isinstance(exp, list):
+                raise Exception("Cannot apply postfix to derivative")
+            exp = sympy.factorial(exp, evaluate=False)
+        elif op.eval_at():
+            ev = op.eval_at()
+            at_b = None
+            at_a = None
+            if ev.eval_at_sup():
+                at_b = do_subs(exp, ev.eval_at_sup()) 
+            if ev.eval_at_sub():
+                at_a = do_subs(exp, ev.eval_at_sub())
+            if at_b != None and at_a != None:
+                exp = sympy.Add(at_b, -1 * at_a, evaluate=False)
+            elif at_b != None:
+                exp = at_b
+            elif at_a != None:
+                exp = at_a
+            
     return exp
 
-def stringify_exp(exp):
+def convert_exp(exp):
     if exp.exp():
-        base = stringify_exp(exp.exp(0))
+        base = convert_exp(exp.exp(0))
         if isinstance(base, list):
             raise Exception("Cannot raise derivative to power")
         if exp.EXP():
-            exponent = stringify_exp(exp.exp(1))
+            exponent = convert_exp(exp.exp(1))
         elif exp.expr():
-            exponent = stringify_expr(exp.expr())
-        return "%s**(%s)" % (base, exponent)
+            exponent = convert_expr(exp.expr())
+        return sympy.Pow(base, exponent, evaluate=False)
     elif exp.comp():
-        return stringify_comp(exp.comp())
+        return convert_comp(exp.comp())
 
-def stringify_comp(comp):
+def convert_comp(comp):
     if comp.group():
-        return "(%s)" % (stringify_expr(comp.group().expr()))
+        return convert_expr(comp.group().expr())
     elif comp.abs_group():
-        return "Abs(%s)" % (stringify_expr(comp.abs_group().expr()))
+        return sympy.Abs(convert_expr(comp.abs_group().expr()))
     elif comp.atom():
-        return stringify_atom(comp.atom())
+        return convert_atom(comp.atom())
     elif comp.frac():
-        return stringify_frac(comp.frac())
+        return convert_frac(comp.frac())
     elif comp.func():
-        return stringify_func(comp.func())
+        return convert_func(comp.func())
 
-def stringify_atom(atom):
+def convert_atom(atom):
     if atom.LETTER():
-        return atom.LETTER().getText()
+        return sympy.Symbol(atom.LETTER().getText())
     elif atom.SYMBOL():
         s = atom.SYMBOL().getText()[1:]
         if s == "infty":
-            return "oo"
+            return sympy.oo
         else:
-            return s
+            return sympy.Symbol(s)
     elif atom.NUMBER():
-        return atom.NUMBER().getText()
+        s = atom.NUMBER().getText().replace(",", "")
+        return sympy.Number(s)
     elif atom.DIFFERENTIAL():
-        return atom.DIFFERENTIAL().getText()
+        return sympy.Symbol(atom.DIFFERENTIAL().getText())
 
-def stringify_frac(frac):
+def convert_frac(frac):
     if (frac.letter1 and frac.letter1.text == 'd' and frac.DIFFERENTIAL()):
-        wrt = frac.DIFFERENTIAL().getText()[1:]
+        wrt = sympy.Symbol(frac.DIFFERENTIAL().getText()[1:])
         if frac.expr(0):
-            fmt = "diff(%s, %s)"
-            return fmt % (stringify_expr(frac.expr(0)), wrt)
+            return sympy.Derivative(convert_expr(frac.expr(0)), wrt)
         else:
             return [wrt]
 
-    num = ""
+    num = 1
     if frac.letter1:
-        num += frac.letter1.text
+        num = sympy.Symbol(frac.letter1.text)
     if frac.upper:
-        num += stringify_expr(frac.upper)
-    denom = ""
+        num = sympy.Mul(num, convert_expr(frac.upper), evaluate=False)
+        
     if frac.DIFFERENTIAL():
-        denom += frac.DIFFERENTIAL().getText()
+        text = frac.DIFFERENTIAL().getText()
+        first = sympy.Symbol(text[0])
+        if text[1] == '\\':
+            text = text[2:]
+        else:
+            text = text[1:]
+        second = sympy.Symbol(text)
+        denom = sympy.Mul(first, second, evaluate=False)
     if frac.lower:
-        denom += stringify_expr(frac.lower)
+        denom = convert_expr(frac.lower)
 
-    return "((%s) / (%s))" % (num, denom)
+    return num / denom
 
-def stringify_func(func):
+def convert_func(func):
     if func.func_normal():
+        arg = convert_func_arg(func.func_arg())
         name = func.func_normal().start.text[1:]
 
         # change arc<trig> -> a<trig>
-        if (name=="arcsin" or name=="arccos" or name=="arctan"
-            or name=="arccsc" or name=="arcsec" or name=="arccot"):
+        if name in ["arcsin", "arccos", "arctan", "arccsc", "arcsec",
+        "arccot"]:
             name = "a" + name[3:]
-
+            expr = getattr(sympy.functions, name)(arg)
+            
         fmt = "%s(%s)"
 
-        if (name=="log" or name=="ln") and func.subexpr():
-            fmt += " / %s(%s)" % (name, stringify_expr(func.subexpr().expr()))
+        if (name=="log" or name=="ln"):
+            if func.subexpr():
+                base = convert_expr(func.subexpr().expr())
+            elif name == "log":
+                base = 10
+            elif name == "ln":
+                base = sympy.E
 
-        if ((name=="sin" or name=="cos" or name=="tan" or name=="csc"
-            or name=="sec" or name=="cot") and func.supexpr() and
-            stringify_expr(func.supexpr().expr())=="-1"):
-            name = "a" + name
-        elif func.supexpr():
-            fmt = (("(%s)" % fmt) + "**(" + 
-                stringify_expr(func.supexpr().expr()) + ")")
+            expr = sympy.log(arg, base)
 
-        arg  = stringify_func_arg(func.func_arg())
-        return fmt % (name, arg)
+        if name in ["sin", "cos", "tan", "csc", "sec", "cot"]:
+            if func.supexpr() and convert_expr(func.supexpr().expr()) == -1:
+                name = "a" + name
+                expr = getattr(sympy.functions, name)(arg)
+            else:
+                expr = getattr(sympy.functions, name)(arg)
+                if func.supexpr():
+                    power = convert_expr(func.supexpr().expr())
+                    expr = sympy.Pow(expr, power)
+
+        return expr
     elif func.FUNC_INT():
         return handle_integral(func)
     elif func.FUNC_SQRT():
-        return "sqrt(%s)" % (stringify_expr(func.expr()))
+        return sympy.sqrt(convert_expr(func.expr()))
     elif func.FUNC_SUM():
         return handle_sum_or_prod(func, "summation")
     elif func.FUNC_PROD():
@@ -250,69 +292,76 @@ def stringify_func(func):
     elif func.FUNC_LIM():
         return handle_limit(func)
 
-def stringify_func_arg(arg):
+def convert_func_arg(arg):
     if arg.comp():
-        return stringify_comp(arg.comp())
+        return convert_comp(arg.comp())
     elif arg.atom():
-        arr = map(stringify_atom, arg.atom())
-        return "*".join(arr)
+        arr = map(convert_atom, arg.atom())
+        return sympy.Mul(*arr)
 
 def handle_integral(func):
     if func.additive():
-        integrand = stringify_add(func.additive())
+        integrand = convert_add(func.additive())
     elif func.frac():
-        integrand = stringify_frac(func.frac())
+        integrand = convert_frac(func.frac())
     else:
-        integrand = "1"
+        integrand = 1
 
     if func.DIFFERENTIAL():
-        int_var = func.DIFFERENTIAL().getText()[1:]
-        if int_var[0] == "\\":
-            int_var = int_var[1:]
+        text = func.DIFFERENTIAL().getText()[1:]
+        if text[0] == "\\":
+            int_var = sympy.Symbol(text[1:])
+        else:
+            int_var = sympy.Symbol(text)
     else:
-        m = re.search(r'(d[a-z])', integrand)
-        if m:
-            integrand = integrand.replace(m.group(0), '1')
-            int_var = m.group(0)[1]
+        for sym in integrand.atoms(sympy.Symbol):
+            s = str(sym)
+            if len(s) > 1 and s[0] == 'd':
+                if s[1] == '\\':
+                    int_var = sympy.Symbol(s[2:])
+                else:
+                    int_var = sympy.Symbol(s[1:])
+                int_sym = sym
+        if int_var:
+            integrand = integrand.subs(int_sym, 1)
         else:
             # Assume dx by default
-            int_var = "x"
+            int_var = sympy.Symbol('x')
 
     if func.subexpr():
-        lower = stringify_expr(func.subexpr().expr())
-        upper = stringify_expr(func.supexpr().expr())
-        fmt = "integrate(%s, (%s, %s, %s))"
-        return fmt % (integrand, int_var, lower, upper)
+        lower = convert_expr(func.subexpr().expr())
+        upper = convert_expr(func.supexpr().expr())
+        return sympy.Integral(integrand, (int_var, lower, upper))
     else:
-        fmt = "integrate(%s, %s)"
-        return fmt % (integrand, int_var)
+        return sympy.Integral(integrand, int_var)
 
 def handle_sum_or_prod(func, name):
-    val      = stringify_mp(func.mp())
-    iter_var = stringify_expr(func.subeq().equality().expr(0))
-    start    = stringify_expr(func.subeq().equality().expr(1))
-    end      = stringify_expr(func.supexpr().expr())
+    val      = convert_mp(func.mp())
+    iter_var = convert_expr(func.subeq().equality().expr(0))
+    start    = convert_expr(func.subeq().equality().expr(1))
+    end      = convert_expr(func.supexpr().expr())
 
-    fmt = "%s(%s, (%s, %s, %s))"
-    return fmt % (name, val, iter_var, start, end)
+    if name == "summation":
+        return sympy.Sum(val, (iter_var, start, end))
+    elif name == "product":
+        return sympy.Product(val, (iter_var, start, end))
 
 def handle_limit(func):
     sub = func.limit_sub()
     if sub.LETTER():
-        var = sub.LETTER().getText()
+        var = sympy.Symbol(sub.LETTER().getText())
     elif sub.SYMBOL():
-        var = sub.SYMBOL().getText()[1:]
+        var = sympy.Symbol(sub.SYMBOL().getText()[1:])
     else:
-        var = "x"
+        var = sympy.Symbol('x')
     if sub.SUB():
         direction = "-"
     else:
         direction = "+"
-    approaching = stringify_expr(sub.expr())
-    content     = stringify_mp(func.mp())
+    approaching = convert_expr(sub.expr())
+    content     = convert_mp(func.mp())
     
-    fmt = 'limit(%s, %s, %s, dir="%s")'
-    return fmt % (content, var, approaching, direction)
+    return sympy.Limit(content, var, approaching, direction)
 
 def test_sympy():
     print process_sympy("e**(45 + 2)")
