@@ -82,14 +82,12 @@ equality:
 expr: additive;
 
 additive:
-    additive ADD additive
-    | additive SUB additive
+    additive (ADD | SUB) additive
     | mp;
 
 // mult part
 mp:
-    mp (MUL | CMD_TIMES | CMD_CDOT) mp
-    | mp (DIV | CMD_DIV) mp
+    mp (MUL | CMD_TIMES | CMD_CDOT | DIV | CMD_DIV) mp
     | unary;
 
 unary:
