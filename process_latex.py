@@ -174,11 +174,11 @@ def convert_postfix(postfix):
 
 def convert_exp(exp):
     if exp.exp():
-        base = convert_exp(exp.exp(0))
+        base = convert_exp(exp.exp())
         if isinstance(base, list):
             raise Exception("Cannot raise derivative to power")
-        if exp.EXP():
-            exponent = convert_exp(exp.exp(1))
+        if exp.atom():
+            exponent = convert_atom(exp.atom())
         elif exp.expr():
             exponent = convert_expr(exp.expr())
         return sympy.Pow(base, exponent, evaluate=False)

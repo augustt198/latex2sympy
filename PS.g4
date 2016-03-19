@@ -11,8 +11,6 @@ SUB: '-';
 MUL: '*';
 DIV: '/';
 
-EXP: '**';
-
 L_PAREN: '(';
 R_PAREN: ')';
 L_BRACE: '{';
@@ -115,8 +113,7 @@ eval_at_sup:
     R_BRACE;
 
 exp:
-    exp EXP exp
-    | exp CARET L_BRACE expr R_BRACE subexpr?
+    exp CARET (atom | L_BRACE expr R_BRACE) subexpr?
     | comp;
 
 comp:
