@@ -110,13 +110,6 @@ def convert_unary(unary):
     elif unary.postfix():
         return convert_postfix_list(unary.postfix())
 
-def is_number(s):
-    try:
-        float(s)
-        return True
-    except ValueError:
-        return False
-
 def convert_postfix_list(arr, i=0):
     if i >= len(arr):
         raise Exception("Index out of bounds")
