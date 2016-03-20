@@ -120,9 +120,11 @@ def convert_postfix_list(arr, i=0):
             return res # nothing to multiply by
         else:
             if i > 0:
-                left  = arr[i - 1]
-                right = arr[i + 1]
-                if isinstance(left, sympy.Number) and isinstance(right, sympy.Number) and str(res) == "x":
+                left_syms  = convert_postfix(arr[i - 1]).atoms(sympy.Symbol)
+                right_syms = convert_postfix(arr[i + 1]).atoms(sympy.Symbol)
+                # if the left and right sides contain no variables and the
+                # symbol in between is 'x', treat as multiplication.
+                if len(left_syms) == 0 and len(right_syms) == 0 and str(res) == "x":
                     return convert_postfix_list(arr, i + 1)
             # multiply by next
             return sympy.Mul(res, convert_postfix_list(arr, i + 1), evaluate=False)
