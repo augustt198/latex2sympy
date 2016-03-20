@@ -226,7 +226,12 @@ def convert_frac(frac):
     if frac.letter1:
         num = sympy.Symbol(frac.letter1.text)
     if frac.upper:
-        num = sympy.Mul(num, convert_expr(frac.upper), evaluate=False)
+        upper = convert_expr(frac.upper)
+        tok = frac.upper.start.text
+        if tok == "+" or tok == "-":
+            num = sympy.Add(num, upper, evaluate=False)
+        else:
+            num = sympy.Mul(num, upper, evaluate=False)
         
     if frac.DIFFERENTIAL():
         text = frac.DIFFERENTIAL().getText()
@@ -240,7 +245,7 @@ def convert_frac(frac):
     if frac.lower:
         denom = convert_expr(frac.lower)
 
-    return num / denom
+    return sympy.Mul(num, sympy.Pow(denom, -1, evaluate=False), evaluate=False)
 
 def convert_func(func):
     if func.func_normal():
