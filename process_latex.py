@@ -329,8 +329,14 @@ def handle_integral(func):
             int_var = sympy.Symbol('x')
 
     if func.subexpr():
-        lower = convert_expr(func.subexpr().expr())
-        upper = convert_expr(func.supexpr().expr())
+        if func.subexpr().atom():
+            lower = convert_atom(func.subexpr().atom())
+        else:
+            lower = convert_expr(func.subexpr().expr())
+        if func.supexpr().atom():
+            upper = convert_atom(func.supexpr().atom())
+        else:
+            upper = convert_expr(func.supexpr().expr())
         return sympy.Integral(integrand, (int_var, lower, upper))
     else:
         return sympy.Integral(integrand, int_var)

@@ -168,8 +168,8 @@ limit_sub:
 
 func_arg: atom+ | comp;
 
-subexpr: UNDERSCORE L_BRACE expr R_BRACE;
-supexpr: CARET L_BRACE expr R_BRACE;
+subexpr: UNDERSCORE (atom | L_BRACE expr R_BRACE);
+supexpr: CARET (atom | L_BRACE expr R_BRACE);
 
 subeq: UNDERSCORE L_BRACE equality R_BRACE;
 supeq: UNDERSCORE L_BRACE equality R_BRACE;
