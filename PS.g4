@@ -11,8 +11,6 @@ SUB: '-';
 MUL: '*';
 DIV: '/';
 
-EXP: '**';
-
 L_PAREN: '(';
 R_PAREN: ')';
 L_BRACE: '{';
@@ -59,8 +57,8 @@ DIFFERENTIAL: 'd' ([a-zA-Z] | '\\' [a-zA-Z]+);
 LETTER: [a-zA-Z];
 fragment DIGIT: [0-9];
 NUMBER:
-    DIGIT+
-    | DIGIT* '.' DIGIT+;
+    DIGIT+ (',' DIGIT DIGIT DIGIT)*
+    | DIGIT* (',' DIGIT DIGIT DIGIT)* '.' DIGIT+;
 
 EQUAL: '=';
 LT: '<';
@@ -84,25 +82,36 @@ equality:
 expr: additive;
 
 additive:
-    additive ADD additive
-    | additive SUB additive
+    additive (ADD | SUB) additive
     | mp;
 
 // mult part
 mp:
-    mp (MUL | CMD_TIMES | CMD_CDOT) mp
-    | mp (DIV | CMD_DIV) mp
+    mp (MUL | CMD_TIMES | CMD_CDOT | DIV | CMD_DIV) mp
     | unary;
 
 unary:
     (ADD | SUB) unary
     | postfix+;
 
-postfix: exp BANG?;
+postfix: exp postfix_op*;
+postfix_op: BANG | eval_at;
+
+eval_at:
+    BAR (eval_at_sup | eval_at_sub | eval_at_sup eval_at_sub);
+
+eval_at_sub:
+    UNDERSCORE L_BRACE
+    (expr | equality)
+    R_BRACE;
+
+eval_at_sup:
+    CARET L_BRACE
+    (expr | equality)
+    R_BRACE;
 
 exp:
-    exp EXP exp
-    | exp CARET L_BRACE expr R_BRACE subexpr?
+    exp CARET (atom | L_BRACE expr R_BRACE) subexpr?
     | comp;
 
 comp:
@@ -159,8 +168,8 @@ limit_sub:
 
 func_arg: atom+ | comp;
 
-subexpr: UNDERSCORE L_BRACE expr R_BRACE;
-supexpr: CARET L_BRACE expr R_BRACE;
+subexpr: UNDERSCORE (atom | L_BRACE expr R_BRACE);
+supexpr: CARET (atom | L_BRACE expr R_BRACE);
 
 subeq: UNDERSCORE L_BRACE equality R_BRACE;
 supeq: UNDERSCORE L_BRACE equality R_BRACE;
