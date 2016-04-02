@@ -52,7 +52,8 @@ CMD_FRAC:  '\\frac';
 UNDERSCORE: '_';
 CARET: '^';
 
-DIFFERENTIAL: 'd' ([a-zA-Z] | '\\' [a-zA-Z]+);
+fragment WS_CHAR: [ \t\r\n];
+DIFFERENTIAL: 'd' WS_CHAR*? ([a-zA-Z] | '\\' [a-zA-Z]+);
 
 LETTER: [a-zA-Z];
 fragment DIGIT: [0-9];

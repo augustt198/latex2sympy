@@ -212,11 +212,12 @@ def convert_atom(atom):
         s = atom.NUMBER().getText().replace(",", "")
         return sympy.Number(s)
     elif atom.DIFFERENTIAL():
-        return sympy.Symbol(atom.DIFFERENTIAL().getText())
+        var = get_differential_var(atom.DIFFERENTIAL())
+        return sympy.Symbol('d' + var.name)
 
 def convert_frac(frac):
     if (frac.letter1 and frac.letter1.text == 'd' and frac.DIFFERENTIAL()):
-        wrt = sympy.Symbol(frac.DIFFERENTIAL().getText()[1:])
+        wrt = get_differential_var(frac.DIFFERENTIAL())
         if frac.expr(0):
             return sympy.Derivative(convert_expr(frac.expr(0)), wrt)
         else:
@@ -236,11 +237,7 @@ def convert_frac(frac):
     if frac.DIFFERENTIAL():
         text = frac.DIFFERENTIAL().getText()
         first = sympy.Symbol(text[0])
-        if text[1] == '\\':
-            text = text[2:]
-        else:
-            text = text[1:]
-        second = sympy.Symbol(text)
+        second = get_differential_var(frac.DIFFERENTIAL())
         denom = sympy.Mul(first, second, evaluate=False)
     if frac.lower:
         denom = convert_expr(frac.lower)
@@ -312,12 +309,9 @@ def handle_integral(func):
     else:
         integrand = 1
 
+    int_var = None
     if func.DIFFERENTIAL():
-        text = func.DIFFERENTIAL().getText()[1:]
-        if text[0] == "\\":
-            int_var = sympy.Symbol(text[1:])
-        else:
-            int_var = sympy.Symbol(text)
+        int_var = get_differential_var(func.DIFFERENTIAL())
     else:
         for sym in integrand.atoms(sympy.Symbol):
             s = str(sym)
@@ -373,6 +367,18 @@ def handle_limit(func):
     content     = convert_mp(func.mp())
     
     return sympy.Limit(content, var, approaching, direction)
+
+def get_differential_var(d):
+    text = d.getText()
+    for i in range(1, len(text)):
+        c = text[i]
+        if not (c == " " or c == "\r" or c == "\n" or c == "\t"):
+            idx = i
+            break
+    text = text[idx:]
+    if text[0] == "\\":
+        text = text[1:]
+    return sympy.Symbol(text)
 
 def test_sympy():
     print process_sympy("e**(45 + 2)")
