@@ -152,7 +152,9 @@ func:
     (subexpr supexpr | supexpr subexpr)?
     (additive? DIFFERENTIAL | frac | additive)
 
-    | FUNC_SQRT L_BRACE expr R_BRACE
+    | FUNC_SQRT
+    (L_BRACKET root=expr R_BRACKET)?
+    L_BRACE base=expr R_BRACE
 
     | (FUNC_SUM | FUNC_PROD)
     (subeq supexpr | supexpr subeq)

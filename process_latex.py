@@ -284,7 +284,12 @@ def convert_func(func):
     elif func.FUNC_INT():
         return handle_integral(func)
     elif func.FUNC_SQRT():
-        return sympy.sqrt(convert_expr(func.expr()))
+        expr = convert_expr(func.base)
+        if func.root:
+            r = convert_expr(func.root)
+            return sympy.root(expr, r)
+        else:
+            return sympy.sqrt(expr)
     elif func.FUNC_SUM():
         return handle_sum_or_prod(func, "summation")
     elif func.FUNC_PROD():
