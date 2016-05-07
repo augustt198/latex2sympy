@@ -91,11 +91,20 @@ mp:
     mp (MUL | CMD_TIMES | CMD_CDOT | DIV | CMD_DIV) mp
     | unary;
 
+mp_nofunc:
+    mp_nofunc (MUL | CMD_TIMES | CMD_CDOT | DIV | CMD_DIV) mp_nofunc
+    | unary_nofunc;
+
 unary:
     (ADD | SUB) unary
     | postfix+;
 
+unary_nofunc:
+    (ADD | SUB) unary_nofunc
+    | postfix postfix_nofunc*;
+
 postfix: exp postfix_op*;
+postfix_nofunc: exp_nofunc postfix_op*;
 postfix_op: BANG | eval_at;
 
 eval_at:
@@ -115,12 +124,22 @@ exp:
     exp CARET (atom | L_BRACE expr R_BRACE) subexpr?
     | comp;
 
+exp_nofunc:
+    exp_nofunc CARET (atom | L_BRACE expr R_BRACE) subexpr?
+    | comp_nofunc;
+
 comp:
     group
     | abs_group
     | atom
     | frac
     | func;
+
+comp_nofunc:
+    group
+    | abs_group
+    | atom
+    | frac;
 
 group:
     L_PAREN expr R_PAREN 
@@ -147,7 +166,7 @@ func_normal:
 func:
     func_normal
     (subexpr? supexpr? | supexpr? subexpr?)
-    func_arg
+    (L_PAREN func_arg R_PAREN | func_arg_noparens)
 
     | FUNC_INT
     (subexpr supexpr | supexpr subexpr)?
@@ -169,7 +188,8 @@ limit_sub:
     expr (CARET L_BRACE (ADD | SUB) R_BRACE)?
     R_BRACE;
 
-func_arg: atom+ | comp;
+func_arg: mp;
+func_arg_noparens: mp_nofunc;
 
 subexpr: UNDERSCORE (atom | L_BRACE expr R_BRACE);
 supexpr: CARET (atom | L_BRACE expr R_BRACE);

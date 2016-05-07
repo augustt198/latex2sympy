@@ -86,29 +86,46 @@ def convert_add(add):
     else:
         return convert_mp(add.mp())
 
-def convert_mult(mult):
-    arr = map(convert_mp, mult.mp())
-    return sympy.Mul(*arr)
-
 def convert_mp(mp):
+    if hasattr(mp, 'mp'):
+        mp_left = mp.mp(0)
+        mp_right = mp.mp(1)
+    else:
+        mp_left = mp.mp_nofunc(0)
+        mp_right = mp.mp_nofunc(1)
+
     if mp.MUL() or mp.CMD_TIMES() or mp.CMD_CDOT():
-        lh = convert_mp(mp.mp(0))
-        rh = convert_mp(mp.mp(1))
+        lh = convert_mp(mp_left)
+        rh = convert_mp(mp_right)
         return sympy.Mul(lh, rh, evaluate=False)
     elif mp.DIV() or mp.CMD_DIV():
-        lh = convert_mp(mp.mp(0))
-        rh = convert_mp(mp.mp(1))
+        lh = convert_mp(mp_left)
+        rh = convert_mp(mp_right)
         return sympy.Mul(lh, sympy.Pow(rh, -1, evaluate=False), evaluate=False)
-    elif mp.unary():
-        return convert_unary(mp.unary())
+    else:
+        if hasattr(mp, 'unary'):
+            return convert_unary(mp.unary())
+        else:
+            return convert_unary(mp.unary_nofunc())
 
 def convert_unary(unary):
+    if hasattr(unary, 'unary'):
+        nested_unary = unary.unary()
+    else:
+        nested_unary = unary.unary_nofunc()
+    if hasattr(unary, 'postfix_nofunc'):
+        first = unary.postfix()
+        tail = unary.postfix_nofunc()
+        postfix = [first] + tail
+    else:
+        postfix = unary.postfix()
+
     if unary.ADD():
-        return convert_unary(unary.unary())
+        return convert_unary(nested_unary)
     elif unary.SUB():
-        return sympy.Mul(-1, convert_unary(unary.unary()), evaluate=False)
-    elif unary.postfix():
-        return convert_postfix_list(unary.postfix())
+        return sympy.Mul(-1, convert_unary(nested_unary), evaluate=False)
+    elif postfix:
+        return convert_postfix_list(postfix)
 
 def convert_postfix_list(arr, i=0):
     if i >= len(arr):
@@ -154,7 +171,12 @@ def do_subs(expr, at):
         return expr.subs(lh, rh)
 
 def convert_postfix(postfix):
-    exp = convert_exp(postfix.exp())
+    if hasattr(postfix, 'exp'):
+        exp_nested = postfix.exp()
+    else:
+        exp_nested = postfix.exp_nofunc()
+
+    exp = convert_exp(exp_nested)
     for op in postfix.postfix_op():
         if op.BANG():
             if isinstance(exp, list):
@@ -178,8 +200,13 @@ def convert_postfix(postfix):
     return exp
 
 def convert_exp(exp):
-    if exp.exp():
-        base = convert_exp(exp.exp())
+    if hasattr(exp, 'exp'):
+        exp_nested = exp.exp()
+    else:
+        exp_nested = exp.exp_nofunc()
+
+    if exp_nested:
+        base = convert_exp(exp_nested)
         if isinstance(base, list):
             raise Exception("Cannot raise derivative to power")
         if exp.atom():
@@ -187,8 +214,11 @@ def convert_exp(exp):
         elif exp.expr():
             exponent = convert_expr(exp.expr())
         return sympy.Pow(base, exponent, evaluate=False)
-    elif exp.comp():
-        return convert_comp(exp.comp())
+    else:
+        if hasattr(exp, 'comp'):
+            return convert_comp(exp.comp())
+        else:
+            return convert_comp(exp.comp_nofunc())
 
 def convert_comp(comp):
     if comp.group():
@@ -249,17 +279,19 @@ def convert_frac(frac):
 
 def convert_func(func):
     if func.func_normal():
-        arg = convert_func_arg(func.func_arg())
+        if func.L_PAREN(): # function called with parenthesis
+            arg = convert_func_arg(func.func_arg())
+        else:
+            arg = convert_func_arg(func.func_arg_noparens())
+            
         name = func.func_normal().start.text[1:]
 
         # change arc<trig> -> a<trig>
         if name in ["arcsin", "arccos", "arctan", "arccsc", "arcsec",
         "arccot"]:
             name = "a" + name[3:]
-            expr = getattr(sympy.functions, name)(arg)
+            expr = getattr(sympy.functions, name)(arg, evaluate=False)
             
-        fmt = "%s(%s)"
-
         if (name=="log" or name=="ln"):
             if func.subexpr():
                 base = convert_expr(func.subexpr().expr())
@@ -267,18 +299,17 @@ def convert_func(func):
                 base = 10
             elif name == "ln":
                 base = sympy.E
-
-            expr = sympy.log(arg, base)
+            expr = sympy.log(arg, base, evaluate=False)
 
         if name in ["sin", "cos", "tan", "csc", "sec", "cot"]:
             if func.supexpr() and convert_expr(func.supexpr().expr()) == -1:
                 name = "a" + name
-                expr = getattr(sympy.functions, name)(arg)
+                expr = getattr(sympy.functions, name)(arg, evaluate=False)
             else:
-                expr = getattr(sympy.functions, name)(arg)
+                expr = getattr(sympy.functions, name)(arg, evaluate=False)
                 if func.supexpr():
                     power = convert_expr(func.supexpr().expr())
-                    expr = sympy.Pow(expr, power)
+                    expr = sympy.Pow(expr, power, evaluate=False)
 
         return expr
     elif func.FUNC_INT():
@@ -298,11 +329,10 @@ def convert_func(func):
         return handle_limit(func)
 
 def convert_func_arg(arg):
-    if arg.comp():
-        return convert_comp(arg.comp())
-    elif arg.atom():
-        arr = map(convert_atom, arg.atom())
-        return sympy.Mul(*arr)
+    if hasattr(arg, 'mp'):
+        return convert_mp(arg.mp())
+    else:
+        return convert_mp(arg.mp_nofunc())
 
 def handle_integral(func):
     if func.additive():
