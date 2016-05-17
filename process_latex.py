@@ -291,6 +291,9 @@ def convert_func(func):
         "arccot"]:
             name = "a" + name[3:]
             expr = getattr(sympy.functions, name)(arg, evaluate=False)
+        if name in ["arsinh", "arcosh", "artanh"]:
+            name = "a" + name[2:]
+            expr = getattr(sympy.functions, name)(arg, evaluate=False)
             
         if (name=="log" or name=="ln"):
             if func.subexpr():
@@ -301,7 +304,7 @@ def convert_func(func):
                 base = sympy.E
             expr = sympy.log(arg, base, evaluate=False)
 
-        if name in ["sin", "cos", "tan", "csc", "sec", "cot"]:
+        if name in ["sin", "cos", "tan", "csc", "sec", "cot", "sinh", "cosh", "tanh"]:
             if func.supexpr() and convert_expr(func.supexpr().expr()) == -1:
                 name = "a" + name
                 expr = getattr(sympy.functions, name)(arg, evaluate=False)

@@ -42,6 +42,13 @@ FUNC_ARCCSC: '\\arccsc';
 FUNC_ARCSEC: '\\arcsec';
 FUNC_ARCCOT: '\\arccot';
 
+FUNC_SINH: '\\sinh';
+FUNC_COSH: '\\cosh';
+FUNC_TANH: '\\tanh';
+FUNC_ARSINH: '\\arsinh';
+FUNC_ARCOSH: '\\arcosh';
+FUNC_ARTANH: '\\artanh';
+
 FUNC_SQRT: '\\sqrt';
 
 CMD_TIMES: '\\times';
@@ -161,7 +168,9 @@ func_normal:
     | FUNC_SIN | FUNC_COS | FUNC_TAN
     | FUNC_CSC | FUNC_SEC | FUNC_COT
     | FUNC_ARCSIN | FUNC_ARCCOS | FUNC_ARCTAN
-    | FUNC_ARCCSC | FUNC_ARCSEC | FUNC_ARCCOT;
+    | FUNC_ARCCSC | FUNC_ARCSEC | FUNC_ARCCOT
+    | FUNC_SINH | FUNC_COSH | FUNC_TANH
+    | FUNC_ARSINH | FUNC_ARCOSH | FUNC_ARTANH;
 
 func:
     func_normal
