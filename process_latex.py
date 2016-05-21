@@ -257,13 +257,18 @@ def convert_frac(frac):
             return [wrt]
 
     num = 1
+    default = True
     if frac.letter1:
         num = sympy.Symbol(frac.letter1.text)
+        default = False
     if frac.upper:
         upper = convert_expr(frac.upper)
         tok = frac.upper.start.text
         if tok == "+" or tok == "-":
-            num = sympy.Add(num, upper, evaluate=False)
+            if default:
+                num = upper
+            else:
+                num = sympy.Add(num, upper, evaluate=False)
         else:
             num = sympy.Mul(num, upper, evaluate=False)
         
