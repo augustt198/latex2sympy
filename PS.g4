@@ -42,6 +42,13 @@ FUNC_ARCCSC: '\\arccsc';
 FUNC_ARCSEC: '\\arcsec';
 FUNC_ARCCOT: '\\arccot';
 
+FUNC_SINH: '\\sinh';
+FUNC_COSH: '\\cosh';
+FUNC_TANH: '\\tanh';
+FUNC_ARSINH: '\\arsinh';
+FUNC_ARCOSH: '\\arcosh';
+FUNC_ARTANH: '\\artanh';
+
 FUNC_SQRT: '\\sqrt';
 
 CMD_TIMES: '\\times';
@@ -52,7 +59,8 @@ CMD_FRAC:  '\\frac';
 UNDERSCORE: '_';
 CARET: '^';
 
-DIFFERENTIAL: 'd' ([a-zA-Z] | '\\' [a-zA-Z]+);
+fragment WS_CHAR: [ \t\r\n];
+DIFFERENTIAL: 'd' WS_CHAR*? ([a-zA-Z] | '\\' [a-zA-Z]+);
 
 LETTER: [a-zA-Z];
 fragment DIGIT: [0-9];
@@ -90,11 +98,20 @@ mp:
     mp (MUL | CMD_TIMES | CMD_CDOT | DIV | CMD_DIV) mp
     | unary;
 
+mp_nofunc:
+    mp_nofunc (MUL | CMD_TIMES | CMD_CDOT | DIV | CMD_DIV) mp_nofunc
+    | unary_nofunc;
+
 unary:
     (ADD | SUB) unary
     | postfix+;
 
+unary_nofunc:
+    (ADD | SUB) unary_nofunc
+    | postfix postfix_nofunc*;
+
 postfix: exp postfix_op*;
+postfix_nofunc: exp_nofunc postfix_op*;
 postfix_op: BANG | eval_at;
 
 eval_at:
@@ -114,12 +131,22 @@ exp:
     exp CARET (atom | L_BRACE expr R_BRACE) subexpr?
     | comp;
 
+exp_nofunc:
+    exp_nofunc CARET (atom | L_BRACE expr R_BRACE) subexpr?
+    | comp_nofunc;
+
 comp:
     group
     | abs_group
     | atom
     | frac
     | func;
+
+comp_nofunc:
+    group
+    | abs_group
+    | atom
+    | frac;
 
 group:
     L_PAREN expr R_PAREN 
@@ -141,18 +168,22 @@ func_normal:
     | FUNC_SIN | FUNC_COS | FUNC_TAN
     | FUNC_CSC | FUNC_SEC | FUNC_COT
     | FUNC_ARCSIN | FUNC_ARCCOS | FUNC_ARCTAN
-    | FUNC_ARCCSC | FUNC_ARCSEC | FUNC_ARCCOT;
+    | FUNC_ARCCSC | FUNC_ARCSEC | FUNC_ARCCOT
+    | FUNC_SINH | FUNC_COSH | FUNC_TANH
+    | FUNC_ARSINH | FUNC_ARCOSH | FUNC_ARTANH;
 
 func:
     func_normal
     (subexpr? supexpr? | supexpr? subexpr?)
-    func_arg
+    (L_PAREN func_arg R_PAREN | func_arg_noparens)
 
     | FUNC_INT
     (subexpr supexpr | supexpr subexpr)?
     (additive? DIFFERENTIAL | frac | additive)
 
-    | FUNC_SQRT L_BRACE expr R_BRACE
+    | FUNC_SQRT
+    (L_BRACKET root=expr R_BRACKET)?
+    L_BRACE base=expr R_BRACE
 
     | (FUNC_SUM | FUNC_PROD)
     (subeq supexpr | supexpr subeq)
@@ -166,7 +197,8 @@ limit_sub:
     expr (CARET L_BRACE (ADD | SUB) R_BRACE)?
     R_BRACE;
 
-func_arg: atom+ | comp;
+func_arg: mp;
+func_arg_noparens: mp_nofunc;
 
 subexpr: UNDERSCORE (atom | L_BRACE expr R_BRACE);
 supexpr: CARET (atom | L_BRACE expr R_BRACE);
