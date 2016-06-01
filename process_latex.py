@@ -320,6 +320,14 @@ def convert_func(func):
                     expr = sympy.Pow(expr, power, evaluate=False)
 
         return expr
+    elif func.LETTER() or func.SYMBOL():
+        if func.LETTER(): 
+            fname = func.LETTER().getText()
+        elif func.SYMBOL():
+            fname = func.SYMBOL().getText()[1:]
+        fname = str(fname) # can't be unicode
+        arg = convert_expr(func.arg)
+        return sympy.Function(fname)(arg)
     elif func.FUNC_INT():
         return handle_integral(func)
     elif func.FUNC_SQRT():
@@ -337,8 +345,8 @@ def convert_func(func):
         return handle_limit(func)
 
 def convert_func_arg(arg):
-    if hasattr(arg, 'mp'):
-        return convert_mp(arg.mp())
+    if hasattr(arg, 'expr'):
+        return convert_expr(arg.expr())
     else:
         return convert_mp(arg.mp_nofunc())
 

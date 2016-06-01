@@ -138,9 +138,9 @@ exp_nofunc:
 comp:
     group
     | abs_group
+    | func
     | atom
-    | frac
-    | func;
+    | frac;
 
 comp_nofunc:
     group
@@ -177,6 +177,9 @@ func:
     (subexpr? supexpr? | supexpr? subexpr?)
     (L_PAREN func_arg R_PAREN | func_arg_noparens)
 
+    | (LETTER | SYMBOL) // e.g. f(x)
+    L_PAREN arg=expr R_PAREN
+
     | FUNC_INT
     (subexpr supexpr | supexpr subexpr)?
     (additive? DIFFERENTIAL | frac | additive)
@@ -197,7 +200,7 @@ limit_sub:
     expr (CARET L_BRACE (ADD | SUB) R_BRACE)?
     R_BRACE;
 
-func_arg: mp;
+func_arg: expr;
 func_arg_noparens: mp_nofunc;
 
 subexpr: UNDERSCORE (atom | L_BRACE expr R_BRACE);
