@@ -158,9 +158,9 @@ atom: (LETTER | SYMBOL) subexpr? | NUMBER | DIFFERENTIAL;
 
 frac:
     CMD_FRAC L_BRACE
-    (letter1=LETTER | (letter1=LETTER? upper=expr))
+    upper=expr
     R_BRACE L_BRACE
-    (DIFFERENTIAL | lower=expr)
+    lower=expr
     R_BRACE;
 
 func_normal:

@@ -248,39 +248,56 @@ def convert_atom(atom):
         var = get_differential_var(atom.DIFFERENTIAL())
         return sympy.Symbol('d' + var.name)
 
+def rule2text(ctx):
+    stream = ctx.start.getInputStream()
+    # starting index of starting token
+    startIdx = ctx.start.start 
+    # stopping index of stopping token
+    stopIdx = ctx.stop.stop
+
+    return stream.getText(startIdx, stopIdx)
+
 def convert_frac(frac):
-    if (frac.letter1 and frac.letter1.text == 'd' and frac.DIFFERENTIAL()):
-        wrt = get_differential_var(frac.DIFFERENTIAL())
-        if frac.expr(0):
-            return sympy.Derivative(convert_expr(frac.expr(0)), wrt)
-        else:
+    diff_op = False
+    partial_op = False
+    lower_itv = frac.lower.getSourceInterval()
+    lower_itv_len = lower_itv[1] - lower_itv[0] + 1
+    if (frac.lower.start == frac.lower.stop and
+        frac.lower.start.type == PSLexer.DIFFERENTIAL):
+        wrt = get_differential_var_str(frac.lower.start.text)
+        diff_op = True
+    elif (lower_itv_len == 2 and
+        frac.lower.start.type == PSLexer.SYMBOL and
+        frac.lower.start.text == '\\partial' and
+        (frac.lower.stop.type == PSLexer.LETTER or frac.lower.stop.type == PSLexer.SYMBOL)):
+        partial_op = True
+        wrt = frac.lower.stop.text
+        if frac.lower.stop.type == PSLexer.SYMBOL:
+            wrt = wrt[1:]
+
+    if diff_op or partial_op:
+        wrt = sympy.Symbol(wrt)
+        if (diff_op and frac.upper.start == frac.upper.stop and
+            frac.upper.start.type == PSLexer.LETTER and
+            frac.upper.start.text == 'd'):
             return [wrt]
+        elif (partial_op and frac.upper.start == frac.upper.stop and
+            frac.upper.start.type == PSLexer.SYMBOL and
+            frac.upper.start.text == '\\partial'):
+            return [wrt]
+        upper_text = rule2text(frac.upper)
 
-    num = 1
-    default = True
-    if frac.letter1:
-        num = sympy.Symbol(frac.letter1.text)
-        default = False
-    if frac.upper:
-        upper = convert_expr(frac.upper)
-        tok = frac.upper.start.text
-        if tok == "+" or tok == "-":
-            if default:
-                num = upper
-            else:
-                num = sympy.Add(num, upper, evaluate=False)
-        else:
-            num = sympy.Mul(num, upper, evaluate=False)
-        
-    if frac.DIFFERENTIAL():
-        text = frac.DIFFERENTIAL().getText()
-        first = sympy.Symbol(text[0])
-        second = get_differential_var(frac.DIFFERENTIAL())
-        denom = sympy.Mul(first, second, evaluate=False)
-    if frac.lower:
-        denom = convert_expr(frac.lower)
+        expr_top = None
+        if diff_op and upper_text.startswith('d'):
+            expr_top = process_sympy(upper_text[1:])
+        elif partial_op and frac.upper.start.text == '\\partial':
+            expr_top = process_sympy(upper_text[len('\\partial'):])
+        if expr_top:
+            return sympy.Derivative(expr_top, wrt)
 
-    return sympy.Mul(num, sympy.Pow(denom, -1, evaluate=False), evaluate=False)
+    expr_top = convert_expr(frac.upper)
+    expr_bot = convert_expr(frac.lower)
+    return sympy.Mul(expr_top, sympy.Pow(expr_bot, -1, evaluate=False), evaluate=False)
 
 def convert_func(func):
     if func.func_normal():
@@ -422,7 +439,10 @@ def handle_limit(func):
     return sympy.Limit(content, var, approaching, direction)
 
 def get_differential_var(d):
-    text = d.getText()
+    text = get_differential_var_str(d.getText())
+    return sympy.Symbol(text)
+
+def get_differential_var_str(text):
     for i in range(1, len(text)):
         c = text[i]
         if not (c == " " or c == "\r" or c == "\n" or c == "\t"):
@@ -431,7 +451,7 @@ def get_differential_var(d):
     text = text[idx:]
     if text[0] == "\\":
         text = text[1:]
-    return sympy.Symbol(text)
+    return text
 
 def test_sympy():
     print process_sympy("e^{(45 + 2)}")
