@@ -21,7 +21,7 @@ R_BRACKET: ']';
 BAR: '|';
 
 FUNC_LIM:  '\\lim';
-LIM_APPROACH_SYM: '\\to' | '\\rightarrow' | '\\Rightarrow';
+LIM_APPROACH_SYM: '\\to' | '\\rightarrow' | '\\Rightarrow' | '\\longrightarrow' | '\\Longrightarrow';
 FUNC_INT:  '\\int';
 FUNC_SUM:  '\\sum';
 FUNC_PROD: '\\prod';
@@ -177,7 +177,7 @@ func:
     (subexpr? supexpr? | supexpr? subexpr?)
     (L_PAREN func_arg R_PAREN | func_arg_noparens)
 
-    | (LETTER | SYMBOL) // e.g. f(x)
+    | (LETTER | SYMBOL) subexpr? // e.g. f(x)
     L_PAREN arg=expr R_PAREN
 
     | FUNC_INT
