@@ -6,6 +6,9 @@ from gen.PSParser import PSParser
 from gen.PSLexer import PSLexer
 from gen.PSListener import PSListener
 
+from sympy.printing.str import StrPrinter
+
+
 def process_sympy(sympy):
 
     matherror = MathErrorListener(sympy)
@@ -234,12 +237,28 @@ def convert_comp(comp):
 
 def convert_atom(atom):
     if atom.LETTER():
-        return sympy.Symbol(atom.LETTER().getText())
+        subscriptName = ''
+        if atom.subexpr():
+            subscript = None
+            if atom.subexpr().expr():           # subscript is expr
+                subscript = convert_expr(atom.subexpr().expr())
+            else:                               # subscript is atom
+                subscript = convert_atom(atom.subexpr().atom())
+            subscriptName = '_{' + StrPrinter().doprint(subscript) + '}'
+        return sympy.Symbol(atom.LETTER().getText() + subscriptName)
     elif atom.SYMBOL():
         s = atom.SYMBOL().getText()[1:]
         if s == "infty":
             return sympy.oo
         else:
+            if atom.subexpr():
+                subscript = None
+                if atom.subexpr().expr():           # subscript is expr
+                    subscript = convert_expr(atom.subexpr().expr())
+                else:                               # subscript is atom
+                    subscript = convert_atom(atom.subexpr().atom())
+                subscriptName = StrPrinter().doprint(subscript)
+                s += '_{' + subscriptName + '}'
             return sympy.Symbol(s)
     elif atom.NUMBER():
         s = atom.NUMBER().getText().replace(",", "")
@@ -343,6 +362,14 @@ def convert_func(func):
         elif func.SYMBOL():
             fname = func.SYMBOL().getText()[1:]
         fname = str(fname) # can't be unicode
+        if func.subexpr():
+            subscript = None
+            if func.subexpr().expr():                   # subscript is expr
+                subscript = convert_expr(func.subexpr().expr())
+            else:                                       # subscript is atom
+                subscript = convert_atom(func.subexpr().atom())
+            subscriptName = StrPrinter().doprint(subscript)
+            fname += '_{' + subscriptName + '}'
         arg = convert_expr(func.arg)
         return sympy.Function(fname)(arg)
     elif func.FUNC_INT():
