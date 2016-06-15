@@ -87,7 +87,7 @@ relation:
 equality:
     expr EQUAL expr;
 
-expr: '{'? WS*? additive WS*? '}'?;
+expr: '{'? additive '}'?;
 
 additive:
     additive (ADD | SUB) additive
@@ -193,7 +193,7 @@ func:
     mp
     | FUNC_LIM limit_sub mp;
 
-args: (expr WS*? ',' WS*? args) | expr;
+args: (expr ',' args) | expr;
 
 limit_sub:
     UNDERSCORE L_BRACE
@@ -202,7 +202,7 @@ limit_sub:
     expr (CARET L_BRACE (ADD | SUB) R_BRACE)?
     R_BRACE;
 
-func_arg: expr | (expr WS*? ',' WS*? func_arg);
+func_arg: expr | (expr ',' func_arg);
 func_arg_noparens: mp_nofunc;
 
 subexpr: UNDERSCORE (atom | L_BRACE expr R_BRACE);
