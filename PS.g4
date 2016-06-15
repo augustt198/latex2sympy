@@ -87,7 +87,7 @@ relation:
 equality:
     expr EQUAL expr;
 
-expr: '{'? additive '}'?;
+expr: additive;
 
 additive:
     additive (ADD | SUB) additive
@@ -150,7 +150,8 @@ comp_nofunc:
 
 group:
     L_PAREN expr R_PAREN 
-    | L_BRACKET expr R_BRACKET;
+    | L_BRACKET expr R_BRACKET
+    | L_BRACE expr R_BRACE;
 
 abs_group: BAR expr BAR;
 
