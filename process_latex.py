@@ -213,7 +213,11 @@ def convert_exp(exp):
         if isinstance(base, list):
             raise Exception("Cannot raise derivative to power")
         if exp.atom():
-            exponent = convert_atom(exp.atom())
+            if exp.atom().LETTER():         # Transpose
+                if exp.atom().LETTER().getText() == 'T':
+                    return sympy.Function('T')(base)
+            else:
+                exponent = convert_atom(exp.atom())
         elif exp.expr():
             exponent = convert_expr(exp.expr())
         return sympy.Pow(base, exponent, evaluate=False)
@@ -370,8 +374,13 @@ def convert_func(func):
                 subscript = convert_atom(func.subexpr().atom())
             subscriptName = StrPrinter().doprint(subscript)
             fname += '_{' + subscriptName + '}'
-        arg = convert_expr(func.arg)
-        return sympy.Function(fname)(arg)
+        input_args = func.args()
+        output_args = []
+        while input_args.args():                        # handle multiple arguments to function
+            output_args.append(convert_expr(input_args.expr()))
+            input_args = input_args.args()
+        output_args.append(convert_expr(input_args.expr()))
+        return sympy.Function(fname)(*output_args)
     elif func.FUNC_INT():
         return handle_integral(func)
     elif func.FUNC_SQRT():

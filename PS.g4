@@ -178,7 +178,7 @@ func:
     (L_PAREN func_arg R_PAREN | func_arg_noparens)
 
     | (LETTER | SYMBOL) subexpr? // e.g. f(x)
-    L_PAREN arg=expr R_PAREN
+    L_PAREN args R_PAREN
 
     | FUNC_INT
     (subexpr supexpr | supexpr subexpr)?
@@ -193,6 +193,8 @@ func:
     mp
     | FUNC_LIM limit_sub mp;
 
+args: (expr WS*? ',' WS*? args) | expr;
+
 limit_sub:
     UNDERSCORE L_BRACE
     (LETTER | SYMBOL)
@@ -200,7 +202,7 @@ limit_sub:
     expr (CARET L_BRACE (ADD | SUB) R_BRACE)?
     R_BRACE;
 
-func_arg: expr;
+func_arg: expr | (expr WS*? ',' WS*? func_arg);
 func_arg_noparens: mp_nofunc;
 
 subexpr: UNDERSCORE (atom | L_BRACE expr R_BRACE);
