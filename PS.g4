@@ -87,7 +87,7 @@ relation:
 equality:
     expr EQUAL expr;
 
-expr: additive;
+expr: '{'? WS*? additive WS*? '}'?;
 
 additive:
     additive (ADD | SUB) additive
