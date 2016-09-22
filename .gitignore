@@ -6,3 +6,6 @@ gen/*
 # vim stuff
 *.swp
 *.swo
+
+# OSX
+.DS_Store

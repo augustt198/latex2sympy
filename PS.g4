@@ -58,6 +58,7 @@ CMD_FRAC:  '\\frac';
 
 UNDERSCORE: '_';
 CARET: '^';
+COLON: ':';
 
 fragment WS_CHAR: [ \t\r\n];
 DIFFERENTIAL: 'd' WS_CHAR*? ([a-zA-Z] | '\\' [a-zA-Z]+);
@@ -95,11 +96,11 @@ additive:
 
 // mult part
 mp:
-    mp (MUL | CMD_TIMES | CMD_CDOT | DIV | CMD_DIV) mp
+    mp (MUL | CMD_TIMES | CMD_CDOT | DIV | CMD_DIV | COLON) mp
     | unary;
 
 mp_nofunc:
-    mp_nofunc (MUL | CMD_TIMES | CMD_CDOT | DIV | CMD_DIV) mp_nofunc
+    mp_nofunc (MUL | CMD_TIMES | CMD_CDOT | DIV | CMD_DIV | COLON) mp_nofunc
     | unary_nofunc;
 
 unary:

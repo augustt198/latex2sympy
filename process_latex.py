@@ -101,7 +101,7 @@ def convert_mp(mp):
         lh = convert_mp(mp_left)
         rh = convert_mp(mp_right)
         return sympy.Mul(lh, rh, evaluate=False)
-    elif mp.DIV() or mp.CMD_DIV():
+    elif mp.DIV() or mp.CMD_DIV() or mp.COLON():
         lh = convert_mp(mp_left)
         rh = convert_mp(mp_right)
         return sympy.Mul(lh, sympy.Pow(rh, -1, evaluate=False), evaluate=False)
