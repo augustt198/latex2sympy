@@ -56,6 +56,8 @@ CMD_CDOT:  '\\cdot';
 CMD_DIV:   '\\div';
 CMD_FRAC:  '\\frac';
 
+CMD_MATHIT: '\\mathit';
+
 UNDERSCORE: '_';
 CARET: '^';
 COLON: ':';
@@ -156,7 +158,10 @@ group:
 
 abs_group: BAR expr BAR;
 
-atom: (LETTER | SYMBOL) subexpr? | NUMBER | DIFFERENTIAL;
+atom: (LETTER | SYMBOL) subexpr? | NUMBER | DIFFERENTIAL | mathit;
+
+mathit: CMD_MATHIT L_BRACE mathit_text R_BRACE;
+mathit_text: LETTER*;
 
 frac:
     CMD_FRAC L_BRACE

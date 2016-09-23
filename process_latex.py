@@ -266,6 +266,9 @@ def convert_atom(atom):
     elif atom.DIFFERENTIAL():
         var = get_differential_var(atom.DIFFERENTIAL())
         return sympy.Symbol('d' + var.name)
+    elif atom.mathit():
+        text = rule2text(atom.mathit().mathit_text())
+        return sympy.Symbol(text)
 
 def rule2text(ctx):
     stream = ctx.start.getInputStream()
