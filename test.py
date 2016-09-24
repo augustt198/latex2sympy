@@ -20,6 +20,8 @@ def _log(a, b):
     return log(a, b, evaluate=False)
 
 
+# These latex strings should parse to the corresponding
+# SymPy expression
 GOOD_PAIRS = [
     ("0", 0),
     ("1", 1),
@@ -140,7 +142,51 @@ GOOD_PAIRS = [
     ("\\frac{d}{dx} [ \\tan x ]", Derivative(tan(x), x))
 ]
 
-err = False
+# These bad latex strings should raise an exception when parsed
+BAD_STRINGS = [
+    "(",
+    ")",
+    "a / b /",
+    "\\frac{d}{dx}",
+    "(\\frac{d}{dx})"
+    "\\sqrt{}",
+    "\\sqrt",
+    "{",
+    "}",
+    "1.1.1",
+    "\\mathit{x + y}",
+    "\\mathit{21}",
+    "\\frac{2}{}",
+    "\\frac{}{2}",
+    "\\int",
+    "1 +",
+    "a +",
+    "!",
+    "!0",
+    "_",
+    "^",
+    "a // b",
+    "a \\cdot \\cdot b",
+    "a \\div \\div b",
+    "|",
+    "||x|",
+    "()",
+    "((((((((((((((((()))))))))))))))))",
+    "-",
+    "\\frac{d}{dx} + \\frac{d}{dt}",
+    "f()",
+    "f(,",
+    "f(x,,y)",
+    "f(x,y,",
+    "\\sin^x",
+    "\\cos^2",
+    "\\cos 1 \\cos",
+    "@","#","$","%","&","*",
+    "\\",
+    "~",
+    "\\frac{(2 + x}{1 - x)}"
+]
+
 total = 0
 passed = 0
 for s, eq in GOOD_PAIRS:
@@ -148,11 +194,16 @@ for s, eq in GOOD_PAIRS:
     try:
         if process_sympy(s) != eq:
             print("ERROR: \"%s\" did not parse to %s" % (s, eq))
-            err = True
         else:
             passed += 1
     except Exception as e:
         print("ERROR: Exception when parsing \"%s\"" % s)
-        err = True
+for s in BAD_STRINGS:
+    total += 1
+    try:
+        process_sympy(s)
+        print("ERROR: Exception should have been raised for \"%s\"" % s)
+    except Exception:
+        passed += 1 
 
-print("%d/%d STRINGS PARSED" % (passed, total))
+print("%d/%d STRINGS PASSED" % (passed, total))
