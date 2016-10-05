@@ -13,6 +13,8 @@ $ antlr4 PS.g4 -o gen
 
 ## Usage
 
+In Python 2.7:
+
 ```python
 from process_latex import process_sympy
 
